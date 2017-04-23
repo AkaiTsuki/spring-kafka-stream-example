@@ -26,6 +26,7 @@ import java.util.Properties;
  * Start producer:
  * ./bin/kafka-console-producer --broker-list localhost:9092 --topic test-user-cdc-v1 --property parse.key=true --property key.separator=,
  * ./bin/kafka-console-producer --broker-list localhost:9092 --topic test-company-cdc-v1 --property parse.key=true --property key.separator=,
+ * ./bin/kafka-console-producer --broker-list localhost:9092 --topic test-user-event-v1 --property parse.key=true --property key.separator=,
  *
  */
 @SpringBootApplication
