@@ -17,6 +17,16 @@ import java.util.Properties;
 
 /**
  * Created by jiachiliu on 4/22/17.
+ *
+ * Create Topics:
+ * /bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test-user-cdc-v1
+ * /bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test-company-cdc-v1
+ * /bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test-user-event-v1
+ *
+ * Start producer:
+ * ./bin/kafka-console-producer --broker-list localhost:9092 --topic test-user-cdc-v1 --property parse.key=true --property key.separator=,
+ * ./bin/kafka-console-producer --broker-list localhost:9092 --topic test-company-cdc-v1 --property parse.key=true --property key.separator=,
+ *
  */
 @SpringBootApplication
 public class StreamTableJoinApplication implements CommandLineRunner {
@@ -43,7 +53,7 @@ public class StreamTableJoinApplication implements CommandLineRunner {
         KStreamBuilder builder = new KStreamBuilder();
 
         KTable<String, String> companyTable = builder.table(stringSerde, stringSerde, COMPANY_CDC_TOPIC, COMPANY_STATE_STORE);
-        companyTable.mapValues(v -> "Company Topic Change: "+ v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
+        companyTable.mapValues(v -> "Company Topic Change: " + v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
 
         KTable<String, String> userTable = builder.table(stringSerde, stringSerde, USER_CDC_TOPIC, USER_STATE_STORE);
         userTable.mapValues(v -> "User Table Change: "+ v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
@@ -51,7 +61,7 @@ public class StreamTableJoinApplication implements CommandLineRunner {
         KStream<String, String> userEventStream = builder.stream(stringSerde, stringSerde, USER_EVENT_TOPIC);
 
         userEventStream
-                .leftJoin(userTable, (evt, user) -> "TriggerEvent["+evt+"]: "+ user)
+                .leftJoin(userTable, (evt, user) -> "TriggerEvent[" +evt+"]: "+ user)
                 .leftJoin(companyTable, (user, company) -> user + ":"+ company)
                 .print(USER_OUT_TOPIC);
 
