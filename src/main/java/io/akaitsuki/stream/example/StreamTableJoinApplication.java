@@ -43,19 +43,15 @@ public class StreamTableJoinApplication implements CommandLineRunner {
         KStreamBuilder builder = new KStreamBuilder();
 
         KTable<String, String> companyTable = builder.table(stringSerde, stringSerde, COMPANY_CDC_TOPIC, COMPANY_STATE_STORE);
+        companyTable.mapValues(v -> "Company Topic Change: "+ v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
 
         KTable<String, String> userTable = builder.table(stringSerde, stringSerde, USER_CDC_TOPIC, USER_STATE_STORE);
-//        userTable.mapValues(v -> "UMapped: "+ v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
-
-        KTable<String, String> employeeTable = userTable.leftJoin(companyTable, (u, c) -> u + ":" + c);
-//        employeeTable.mapValues(v-> "EMapped: "+v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
-        employeeTable.print("joined-topic");
-
+        userTable.mapValues(v -> "User Table Change: "+ v).to(stringSerde, stringSerde, USER_EVENT_TOPIC);
 
         KStream<String, String> userEventStream = builder.stream(stringSerde, stringSerde, USER_EVENT_TOPIC);
 
         userEventStream
-                .leftJoin(userTable, (evt, user) -> user)
+                .leftJoin(userTable, (evt, user) -> "TriggerEvent["+evt+"]: "+ user)
                 .leftJoin(companyTable, (user, company) -> user + ":"+ company)
                 .print(USER_OUT_TOPIC);
 
