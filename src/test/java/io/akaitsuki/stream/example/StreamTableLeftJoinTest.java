@@ -68,24 +68,55 @@ public class StreamTableLeftJoinTest {
         producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
-        // Produce user click event's first
+        Properties consumer1Config = getConsumerProperties("StreamTableLeftJoinTest-consumer-1");
+
+        // Produce user click event's first without user information
         List<KeyValue<String, String>> clickEvents = new ArrayList<>();
         clickEvents.add(new KeyValue<>("1", "c1"));
         clickEvents.add(new KeyValue<>("1", "c2"));
         IntegrationTestUtils.produceKeyValuesSynchronouslyWithTimestamp(StreamTableLeftJoin.USER_CLICK_TOPIC, clickEvents, producerConfig, new Date().getTime());
 
-        Properties consumerConfig = new Properties();
-        consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
-        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "StreamTableLeftJoinTest-consumer");
-        consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-        List<KeyValue<String, String>> actual = IntegrationTestUtils.waitUntilMinKeyValueRecordsReceived(consumerConfig, StreamTableLeftJoin.OUTPUT_TOPIC, 2);
+        List<KeyValue<String, String>> actual = IntegrationTestUtils.waitUntilMinKeyValueRecordsReceived(consumer1Config, StreamTableLeftJoin.OUTPUT_TOPIC, 2);
         List<KeyValue<String, String>> expect = Arrays.asList(
                 new KeyValue<>("1", "null c1"),
                 new KeyValue<>("1", "null c2")
         );
         assertThat(actual).containsExactlyElementsOf(expect);
+
+        // Produce user information
+        List<KeyValue<String, String>> userEvents = Arrays.asList(
+                new KeyValue<>("1", "John Smith"),
+                new KeyValue<>("2", "Linda Winsfield")
+        );
+        IntegrationTestUtils.produceKeyValuesSynchronouslyWithTimestamp(StreamTableLeftJoin.USER_INFO_TOPIC, userEvents, producerConfig, new Date().getTime());
+
+        // Produce user click events again
+        IntegrationTestUtils.produceKeyValuesSynchronouslyWithTimestamp(StreamTableLeftJoin.USER_CLICK_TOPIC, clickEvents, producerConfig, new Date().getTime());
+        actual = IntegrationTestUtils.waitUntilMinKeyValueRecordsReceived(consumer1Config, StreamTableLeftJoin.OUTPUT_TOPIC, 2);
+        expect = Arrays.asList(
+                new KeyValue<>("1", "John Smith c1"),
+                new KeyValue<>("1", "John Smith c2")
+        );
+        assertThat(actual).containsExactlyElementsOf(expect);
+
+        // Produce another user click events
+        clickEvents = new ArrayList<>();
+        clickEvents.add(new KeyValue<>("2", "c1"));
+        IntegrationTestUtils.produceKeyValuesSynchronouslyWithTimestamp(StreamTableLeftJoin.USER_CLICK_TOPIC, clickEvents, producerConfig, new Date().getTime());
+        actual = IntegrationTestUtils.waitUntilMinKeyValueRecordsReceived(consumer1Config, StreamTableLeftJoin.OUTPUT_TOPIC, 1);
+        expect = Collections.singletonList(
+                new KeyValue<>("2", "Linda Winsfield c1")
+        );
+        assertThat(actual).containsExactlyElementsOf(expect);
+    }
+
+    private Properties getConsumerProperties(String groupId) {
+        Properties consumerConfig = new Properties();
+        consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
+        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        consumerConfig.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        return consumerConfig;
     }
 }
