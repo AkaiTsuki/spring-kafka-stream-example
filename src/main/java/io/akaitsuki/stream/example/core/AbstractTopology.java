@@ -1,4 +1,4 @@
-package io.akaitsuki.stream.example;
+package io.akaitsuki.stream.example.core;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.kstream.KStreamBuilder;

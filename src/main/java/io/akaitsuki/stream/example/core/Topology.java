@@ -1,4 +1,4 @@
-package io.akaitsuki.stream.example;
+package io.akaitsuki.stream.example.core;
 
 /**
  * Created by jiachiliu on 10/6/17.

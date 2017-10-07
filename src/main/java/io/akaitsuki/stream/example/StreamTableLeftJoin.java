@@ -1,5 +1,6 @@
 package io.akaitsuki.stream.example;
 
+import io.akaitsuki.stream.example.core.AbstractTopology;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
